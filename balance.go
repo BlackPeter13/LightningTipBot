@@ -23,7 +23,7 @@ func (bot TipBot) balanceHandler(m *tb.Message) {
 	}
 
 	usrStr := GetUserStr(m.Sender)
-	log.Infof("[/balance] Getting %s's balance", usrStr)
+	// log.Infof("[/balance] Getting %s's balance", usrStr)
 	balance, err := bot.GetUserBalance(m.Sender)
 	if err != nil {
 		log.Errorf("[/balance] Error fetching %s's balance: %s", usrStr, err)
