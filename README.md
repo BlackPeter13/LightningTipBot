@@ -1,4 +1,4 @@
-<p align="center" style="width:75px;height:75px;">
+<p align="center">
   	<img alt="logo" src="resources/logo_round.png" >
 </p> 
 
