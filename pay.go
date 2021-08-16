@@ -31,7 +31,6 @@ func helpPayInvoiceUsage(errormsg string) string {
 	} else {
 		return fmt.Sprintf(payHelpText, "")
 	}
-	return payHelpText
 }
 
 // confirmPaymentHandler invoked on "/pay lnbc..." command
@@ -102,7 +101,7 @@ func (bot TipBot) confirmPaymentHandler(m *tb.Message) {
 		fmt.Sprintf(confirmPayInvoiceMessage, bolt11.MSatoshi/1000, bolt11.Description),
 		paymentConfirmationMenu)
 	if err != nil {
-		log.Printf("[UpdateUserRecord] User: %s: %s", userStr, err.Error())
+		log.Printf("[UpdateUserRecord] User: %s Error: %s", userStr, err.Error())
 	}
 }
 

@@ -22,7 +22,7 @@ func (bot TipBot) startHandler(m *tb.Message) {
 		return
 	}
 	bot.helpHandler(m)
-	log.Printf("[/start] %s (%d)\n", m.Sender.Username, m.Sender.ID)
+	log.Printf("[/start] User: %s (%d)\n", m.Sender.Username, m.Sender.ID)
 
 	walletCreationMsg, err := bot.telegram.Send(m.Sender, startSettingWalletMessage)
 	err = bot.initWallet(m.Sender)
