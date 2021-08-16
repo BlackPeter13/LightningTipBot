@@ -1,3 +1,8 @@
+<p align="center" style="width:120px;height:120px;">
+  	<img alt="logo" src="resources/logo_round.png" >
+</p> 
+
+
 # @LightningTipBot 🏅
 
 A tip bot for Telegram group chats that can send and receive Bitcoin via the Lightning Network ⚡️. 
