@@ -71,7 +71,7 @@ You can either use your own LNbits instance (recommended) or create an account a
 
 ### Live tooltips
 
-The bot replies to a tipped message to indicate to all participants how much tips a post has received. This message will be updated as new tips are given to a post.
+The bot replies to a tipped message to indicate to all participants how many and what amount of tips a post has received. This tooltip will be updated as new tips are given to a post.
 
 <p align="center">
   	<img alt="How to set up a lnbits wallet and the User Manager extension." src="resources/tooltips.png" >
