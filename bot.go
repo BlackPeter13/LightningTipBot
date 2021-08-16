@@ -109,6 +109,7 @@ func (bot TipBot) registerTelegramHandlers() {
 			"/start":   bot.startHandler,
 			"/send":    bot.sendHandler,
 			"/help":    bot.helpHandler,
+			"/info":    bot.infoHandler,
 		}
 		// assign handler to endpoint
 		for endpoint, handler := range endpointHandler {
@@ -136,10 +137,11 @@ func (bot TipBot) anyTextHandler(m *tb.Message) {
 		return
 	}
 	// could be an invoice
-	if strings.HasPrefix(m.Text, "lnbc") || strings.HasPrefix(m.Text, "lightning:lnbc") {
+	invoice_str := strings.ToLower(m.Text)
+	if strings.HasPrefix(invoice_str, "lnbc") || strings.HasPrefix(invoice_str, "lightning:lnbc") {
 		// if it's only one word
-		if !strings.Contains(m.Text, " ") {
-			m.Text = "/pay " + m.Text
+		if !strings.Contains(invoice_str, " ") {
+			m.Text = "/pay " + invoice_str
 			bot.confirmPaymentHandler(m)
 		}
 	}
