@@ -1,0 +1,13 @@
+# Instructions:
+
+1 - Talk to the botfather
+2 - Use: /setcommands
+3 - Select your tip bot
+4 - Paste this:
+
+help - Read the help.
+balance - Check your balance. 
+tip - Reply to a message to tip it.
+send - Send funds to a user. 
+invoice - Create a Lightning invoice to receive payments. 
+pay - Pay a Lightning invoice.
