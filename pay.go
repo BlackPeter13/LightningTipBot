@@ -49,6 +49,7 @@ func (bot TipBot) confirmPaymentHandler(m *tb.Message) {
 	user, err := GetUser(m.Sender, bot)
 	userStr := GetUserStr(m.Sender)
 	payment_request, err := getArgumentFromCommand(m.Text, 1)
+	payment_request = strings.ToLower(payment_request)
 	// get rid of the URI prefix
 	payment_request = strings.TrimPrefix(payment_request, "lightning:")
 
