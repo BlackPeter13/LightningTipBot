@@ -9,18 +9,18 @@ This repository contains everything you need to set up and run your own tip bot.
 To build the bot from source, clone the repository and compile the source code.
 
 ```
-git clone <repo url>
-cd <repo name>
+git clone https://github.com/LightningTipBot/LightningTipBot.git
+cd LightningTipBot
 go build .
 cp config.yaml-example config.yaml
 ```
 
-Alternatively, you can download binary releases here **link here**. 
+Alternatively, you can download binary releases [here](https://github.com/LightningTipBot/LightningTipBot/releases) **(note: no realses yet)**. 
 
 After you have configured the bot, start it using the command
 
 ```
-./<binary name>
+./LightningTipBot
 ```
 
 ### Configuration
