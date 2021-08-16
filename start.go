@@ -12,42 +12,25 @@ import (
 	"gorm.io/gorm"
 )
 
-func helpHowtoUse() string {
-	return "ℹ️ *Info*\n_This bot sends Bitcoin tips on the Lightning Network⚡️. The basic unit of tips are Satoshis (sat). 100,000,000 sat = 1 Bitcoin. There will only ever be 21 Million Bitcoin._\n\n" +
-		"❤️ *Donate*\n" +
-		"_This bot charges no fees. If you like to support this bot, please consider a donation to cover operational costs. To donate, just tip @LightningTipBot or try_ `/send 1000 @LightningTipBot`\n\n" +
-		"📖 *Commands*\n" +
-		"*/tip* 🏅 Reply to a message to tip it: `/tip <amount> [<memo>]`\n" +
-		"*/balance* 👑 Check your balance: `/balance`\n" +
-		"*/send* 💸 Send funds to a user: `/send <amount> <@username> [<memo>]`\n" +
-		"*/invoice* ⚡️ Receive over Lightning: `/invoice <amount> [<memo>]`\n" +
-		"*/pay* ⚡️ Pay over Lightning: `/pay <invoice>`\n" +
-		"*/help* 📖 Read this help.\n"
-}
-
-func (bot TipBot) helpHandler(m *tb.Message) {
-	if !m.Private() {
-		// delete message
-		NewMessage(m).Dispose(0, bot.telegram)
-	}
-	bot.telegram.Send(m.Sender, helpHowtoUse(), tb.NoPreview)
-	return
-}
+const (
+	startSettingWalletMessage = "🧮 Setting up your wallet..."
+	startWalletReadyMessage   = "✅ *Your wallet is ready.*"
+)
 
 func (bot TipBot) startHandler(m *tb.Message) {
 	if !m.Private() {
 		return
 	}
-	bot.telegram.Send(m.Sender, helpHowtoUse(), tb.NoPreview)
+	bot.helpHandler(m)
 	log.Printf("[/start] %s (%d)\n", m.Sender.Username, m.Sender.ID)
 
-	walletCreationMsg, err := bot.telegram.Send(m.Sender, "🧮 Setting up your wallet...")
+	walletCreationMsg, err := bot.telegram.Send(m.Sender, startSettingWalletMessage)
 	err = bot.initWallet(m.Sender)
 	if err != nil {
 		log.Errorln(fmt.Sprintf("[startHandler] Error with initWallet: %s", err.Error()))
 		return
 	}
-	bot.telegram.Edit(walletCreationMsg, "✅ *Your wallet is ready.*")
+	bot.telegram.Edit(walletCreationMsg, startWalletReadyMessage)
 	bot.balanceHandler(m)
 	return
 }

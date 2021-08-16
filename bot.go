@@ -109,6 +109,7 @@ func (bot TipBot) registerTelegramHandlers() {
 			"/start":   bot.startHandler,
 			"/send":    bot.sendHandler,
 			"/help":    bot.helpHandler,
+			"/info":    bot.infoHandler,
 		}
 		// assign handler to endpoint
 		for endpoint, handler := range endpointHandler {
