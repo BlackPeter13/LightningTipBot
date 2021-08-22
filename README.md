@@ -79,6 +79,14 @@ The bot replies to a tipped message to indicate to all participants how many and
   	<img alt="How to set up a lnbits wallet and the User Manager extension." src="resources/tooltips.png" >
 </p>
 
+### Pay invoices by sending QR codes
+
+To pay a Lightning invoice, you can snap a photo of a QR code and send it directly to the bot. Note that you might need to zoom in, center the QR code, or crop the image if the bot fails to decode the QR code from the photo.
+
+<p align="center">
+  	<img alt="QR code payment example." src="resources/qr_code_example.jpg" >
+</p>
+
 ### Auto-delete commands
 
 To minimize the clutter all the heavy tipping can cause in a group chat, the bot will remove all failed commands (for example due to a syntax error) from the chat immediately. All successful commands will stay visible for `message_dispose_duration` seconds (default 10s) and then be removed. The tips will sill be visible for everyone in the Live tooltip. This feature only works, if the bot is made admin of the group.
