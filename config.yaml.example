@@ -1,0 +1,8 @@
+telegram_api_key: "1234"
+webhook_server: "http://0.0.0.0:1234"
+lnbits_url: "http://*.onion:1234"
+lnbits_admin_key: "1234"
+lnbits_admin_id: "3212"
+db_path: "data/bot.db"
+transactions_path: "data/transactions.db"
+message_dispose_duration: 10
