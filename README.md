@@ -81,7 +81,7 @@ The bot replies to a tipped message to indicate to all participants how many and
 
 ### Pay invoices by sending QR codes
 
-To pay a Lightning invoice, you can snap a photo of a QR code and send it directly to the bot. Note that you might need to zoom in, center the QR code, or crop the image if the bot fails to decode the QR code from the photo.
+To pay a Lightning invoice, you can snap a photo of a QR code and send it directly to the bot. Note that you might need to zoom in, center the QR code, or crop the image if the bot fails to decode the QR code from the photo. By the way, you can also just send an the invoice as a string, the bot will automatically detect it and initiate a payment.
 
 <p align="center">
   	<img alt="QR code payment example." src="resources/qr_code_example.jpg" >
