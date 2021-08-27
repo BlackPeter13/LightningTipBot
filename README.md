@@ -69,6 +69,7 @@ You can either use your own LNbits instance (recommended) or create an account a
 /pay ⚡️ Pay a Lightning invoice: /pay <invoice>
 /help 📖 Read this help.
 /info 📚 More info.
+/donate 🙏 Donate to @LightningTipBot: /donate <amount>
 ```
 
 ### Live tooltips

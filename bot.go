@@ -84,6 +84,7 @@ func (bot TipBot) registerTelegramHandlers() {
 			"/send":    bot.confirmSendHandler,
 			"/help":    bot.helpHandler,
 			"/info":    bot.infoHandler,
+			"/donate":  bot.donationHandler,
 			tb.OnPhoto: bot.privatePhotoHandler,
 			tb.OnText:  bot.anyTextHandler,
 		}
