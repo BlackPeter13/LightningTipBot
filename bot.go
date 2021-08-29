@@ -6,6 +6,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/LightningTipBot/LightningTipBot/internal/lnurl"
+
 	log "github.com/sirupsen/logrus"
 
 	"github.com/LightningTipBot/LightningTipBot/internal/lnbits"
@@ -126,5 +128,7 @@ func (bot TipBot) Start() {
 	}
 	bot.registerTelegramHandlers()
 	lnbits.NewWebhook(Configuration.WebhookServer, bot.telegram, bot.client, bot.database)
+	lnurl.NewServer(Configuration.LNURLServer, Configuration.WebhookServer, bot.telegram, bot.client, bot.database)
+
 	bot.telegram.Start()
 }
