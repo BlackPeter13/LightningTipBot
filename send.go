@@ -5,9 +5,9 @@ import (
 	"strconv"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
-
 	"github.com/LightningTipBot/LightningTipBot/internal/lnbits"
+	"github.com/LightningTipBot/LightningTipBot/pkg/lightning"
+	log "github.com/sirupsen/logrus"
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
@@ -25,7 +25,8 @@ const (
 	errorTryLaterMessage       = "🚫 Internal error. Please try again later.."
 	sendHelpText               = "📖 Oops, that didn't work. %s\n\n" +
 		"*Usage:* `/send <amount> <user> [<memo>]`\n" +
-		"*Example:* `/send 1000 @LightningTipBot I just like the bot ❤️`"
+		"*Example:* `/send 1000 @LightningTipBot I just like the bot ❤️`\n" +
+		"*Example:* `/send 1234 LightningTipBot@ln.tips`"
 )
 
 func helpSendUsage(errormsg string) string {
@@ -36,22 +37,30 @@ func helpSendUsage(errormsg string) string {
 	}
 }
 
-func SendCheckSyntax(m *tb.Message) (bool, string) {
+func (bot *TipBot) SendCheckSyntax(m *tb.Message) (bool, string) {
 	arguments := strings.Split(m.Text, " ")
 	if len(arguments) < 2 {
-		return false, "Did you enter an amount and a recipient?"
+		return false, fmt.Sprintf("Did you enter an amount and a recipient? You can use the /send command to either send to Telegram users like @%s or to a Lightning address like LightningTipBot@ln.tips.", bot.telegram.Me.Username)
 	}
-	if len(arguments) < 3 {
-		return false, "Did you enter a recipient?"
-	}
-	if !strings.HasPrefix(arguments[0], "/send") {
-		return false, "Did you enter a valid command?"
-	}
+	// if len(arguments) < 3 {
+	// 	return false, "Did you enter a recipient?"
+	// }
+	// if !strings.HasPrefix(arguments[0], "/send") {
+	// 	return false, "Did you enter a valid command?"
+	// }
 	return true, ""
 }
 
 // confirmPaymentHandler invoked on "/send 123 @user" command
 func (bot *TipBot) confirmSendHandler(m *tb.Message) {
+	// reset state immediately
+	user, err := GetUser(m.Sender, *bot)
+	if err != nil {
+		return
+	}
+	user.ResetState()
+	err = UpdateUserRecord(user, *bot)
+
 	// check and print all commands
 	bot.anyTextHandler(m)
 	// If the send is a reply, then trigger /tip handler
@@ -60,14 +69,37 @@ func (bot *TipBot) confirmSendHandler(m *tb.Message) {
 		return
 	}
 
-	if ok, err := SendCheckSyntax(m); !ok {
-		bot.telegram.Send(m.Sender, helpSendUsage(err))
+	if ok, errstr := bot.SendCheckSyntax(m); !ok {
+		bot.telegram.Send(m.Sender, helpSendUsage(errstr))
 		NewMessage(m).Dispose(0, bot.telegram)
 		return
 	}
 
-	// get send amount
+	// get send amount, returns 0 if no amount is given
 	amount, err := decodeAmountFromCommand(m.Text)
+	// info: /send 10 <user> DEMANDS an amount, while /send <ln@address.com> also works without
+	// todo: /send <user> should also invoke amount input dialog if no amount is given
+
+	// CHECK whether first or second argument is a LIGHTNING ADDRESS
+	arg := ""
+	if len(strings.Split(m.Text, " ")) > 2 {
+		arg, err = getArgumentFromCommand(m.Text, 2)
+	} else if len(strings.Split(m.Text, " ")) == 2 {
+		arg, err = getArgumentFromCommand(m.Text, 1)
+	}
+	if err == nil {
+		if lightning.IsLightningAddress(arg) {
+			// if the second argument is a lightning address, then send to that address
+			err = bot.sendToLightningAddress(m, arg, amount)
+			if err != nil {
+				log.Errorln(err.Error())
+				return
+			}
+			return
+		}
+	}
+
+	// ASSUME INTERNAL SEND TO TELEGRAM USER
 	if err != nil || amount < 1 {
 		errmsg := fmt.Sprintf("[/send] Error: Send amount not valid.")
 		log.Errorln(errmsg)
@@ -78,7 +110,6 @@ func (bot *TipBot) confirmSendHandler(m *tb.Message) {
 	}
 
 	// SEND COMMAND IS VALID
-
 	// check for memo in command
 	sendMemo := ""
 	if len(strings.Split(m.Text, " ")) > 3 {
@@ -98,7 +129,7 @@ func (bot *TipBot) confirmSendHandler(m *tb.Message) {
 		arg = MarkdownEscape(arg)
 		NewMessage(m).Dispose(0, bot.telegram)
 		errmsg := fmt.Sprintf("Error: User %s could not be found", arg)
-		bot.telegram.Send(m.Sender, helpSendUsage(fmt.Sprintf(sendUserNotFoundMessage, arg, arg)))
+		bot.telegram.Send(m.Sender, helpSendUsage(fmt.Sprintf(sendUserNotFoundMessage, arg, bot.telegram.Me.Username)))
 		log.Errorln(errmsg)
 
 		return
@@ -113,7 +144,7 @@ func (bot *TipBot) confirmSendHandler(m *tb.Message) {
 		arg = MarkdownEscape(arg)
 		NewMessage(m).Dispose(0, bot.telegram)
 		errmsg := fmt.Sprintf("Error: %s is not a user", arg)
-		bot.telegram.Send(m.Sender, fmt.Sprintf(sendIsNotAUsser, arg, arg))
+		bot.telegram.Send(m.Sender, fmt.Sprintf(sendIsNotAUsser, arg, bot.telegram.Me.Username))
 		log.Errorln(errmsg)
 		return
 	}
@@ -145,7 +176,7 @@ func (bot *TipBot) confirmSendHandler(m *tb.Message) {
 
 	// save the send data to the database
 	log.Debug(sendData)
-	user, err := GetUser(m.Sender, *bot)
+	user, err = GetUser(m.Sender, *bot)
 	if err != nil {
 		NewMessage(m).Dispose(0, bot.telegram)
 		log.Printf("[/send] Error: %s\n", err.Error())

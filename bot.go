@@ -89,6 +89,7 @@ func (bot TipBot) registerTelegramHandlers() {
 			"/donate":   bot.donationHandler,
 			"/advanced": bot.advancedHelpHandler,
 			"/link":     bot.lndhubHandler,
+			"/lnurl":    bot.lnurlHandler,
 			tb.OnPhoto:  bot.privatePhotoHandler,
 			tb.OnText:   bot.anyTextHandler,
 		}
@@ -111,6 +112,7 @@ func (bot TipBot) registerTelegramHandlers() {
 		// for /send
 		bot.telegram.Handle(&btnSend, bot.sendHandler)
 		bot.telegram.Handle(&btnCancelSend, bot.cancelSendHandler)
+
 	})
 }
 

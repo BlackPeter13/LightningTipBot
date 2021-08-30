@@ -10,14 +10,14 @@ import (
 )
 
 const (
-	helpMessage = "⚡️ *Wallet*\n_This bot is a Bitcoin Lightning wallet that can sends tips on Telegram. To tip, add the bot to a group chat. The basic unit of tips are Satoshis (sat). 100,000,000 sat = 1 Bitcoin. There will only ever be 21 Million Bitcoin. Type /info for more._\n\n" +
+	helpMessage = "⚡️ *Wallet*\n_This bot is a Bitcoin Lightning wallet that can sends tips on Telegram. To tip, add the bot to a group chat. The basic unit of tips are Satoshis (sat). 100,000,000 sat = 1 Bitcoin. There will only ever be 21 Million Bitcoin. Type 📚 /info for more._\n\n" +
 		"❤️ *Donate*\n" +
 		"_This bot charges no fees but costs satoshis to operate. If you like the bot, please consider supporting this project with a donation. To donate, use_ `/donate 1000`\n\n" +
 		"%s" +
 		"⚙️ *Commands*\n" +
 		"*/tip* 🏅 Reply to a message to tip: `/tip <amount> [<memo>]`\n" +
 		"*/balance* 👑 Check balance: `/balance`\n" +
-		"*/send* 💸 Send funds to a Telegram user: `/send <amount> <@user> [<memo>]`\n" +
+		"*/send* 💸 Send funds to a user: `/send <amount> @user or user@ln.tips [<memo>]`\n" +
 		"*/invoice* ⚡️ Receive over Lightning: `/invoice <amount> [<memo>]`\n" +
 		"*/pay* ⚡️ Pay over Lightning: `/pay <invoice>`\n" +
 		"*/donate* ❤️ Donate to the project: `/donate 1000`\n" +
@@ -44,7 +44,8 @@ const (
 	helpNoUsernameMessage = "ℹ️ You don't have a Telegram username yet."
 
 	advancedMessage = "🤖 *Advanced commands*\n\n" +
-		"*/link* 🔗 Link your wallet to [BlueWallet](https://bluewallet.io/) or [Zeus](https://zeusln.app/)\n"
+		"*/link* 🔗 Link your wallet to [BlueWallet](https://bluewallet.io/) or [Zeus](https://zeusln.app/)\n" +
+		"*/lnurl* ⚡️ Lnurl receive or pay: `/lnurl` or `/lnurl <lnurl>`\n"
 )
 
 func (bot TipBot) makeHelpMessage(m *tb.Message) string {
