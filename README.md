@@ -110,3 +110,4 @@ To minimize the clutter all the heavy tipping can cause in a group chat, the bot
 - [telebot](https://github.com/tucnak/telebot) – A Telegram bot framework in Go.
 - [gozxing](https://github.com/makiuchi-d/gozxing) – barcode image processing library in Go.
 - [ln-decodepay](https://github.com/fiatjaf/ln-decodepay) – Lightning Network BOLT11 invoice decoder.
+- [go-lnurl](https://github.com/fiatjaf/go-lnurl) - Helpers for building lnurl support into services.
