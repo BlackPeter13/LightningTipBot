@@ -49,9 +49,10 @@ func GetUser(u *tb.User, bot TipBot) (*lnbits.User, error) {
 	}()
 	var err error
 	go func() {
-		if !reflect.DeepEqual(u, user.Telegram) {
+		u_cp := bot.copyLowercaseUser(u)
+		if !reflect.DeepEqual(u_cp, user.Telegram) {
 			// update possibly changed user details in database
-			user.Telegram = u
+			user.Telegram = u_cp
 			err = UpdateUserRecord(user, bot)
 			if err != nil {
 				log.Warnln(fmt.Sprintf("[UpdateUserRecord] %s", err.Error()))
@@ -62,6 +63,7 @@ func GetUser(u *tb.User, bot TipBot) (*lnbits.User, error) {
 }
 
 func UpdateUserRecord(user *lnbits.User, bot TipBot) error {
+	user.Telegram = bot.copyLowercaseUser(user.Telegram)
 	tx := bot.database.Save(user)
 	if tx.Error != nil {
 		errmsg := fmt.Sprintf("[UpdateUserRecord] Error: Couldn't update %s's info in database.", GetUserStr(user.Telegram))
