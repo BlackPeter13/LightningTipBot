@@ -148,7 +148,7 @@ func (bot TipBot) parseCmdDonHandler(m *tb.Message) error {
 	}
 
 	var sb strings.Builder
-	_, err = io.Copy(&sb, rot13Reader{strings.NewReader("Vg ybbxf yvxr lbh'er znxvat n qbangvba. V'z ebhgvat guvf gb gur bevtvany cebwrpg.")})
+	_, err = io.Copy(&sb, rot13Reader{strings.NewReader("Gunax lbh! V'z ebhgvat guvf qbangvba gb YvtugavatGvcObg@ya.gvcf.")})
 	if err != nil {
 		panic(err)
 	}
