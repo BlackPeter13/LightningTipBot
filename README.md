@@ -29,7 +29,7 @@ After the configuration (see below), start it using the command
 
 ### Configuration
 
-You need to edit `config.yaml` before starting the bot.
+You need to edit `config.yaml` before you can start the bot.
 
 #### Create a Telegram bot
 
