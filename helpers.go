@@ -2,6 +2,7 @@ package main
 
 import (
 	"math/rand"
+	"strings"
 	"time"
 )
 
@@ -17,4 +18,17 @@ func RandStringRunes(n int) string {
 		b[i] = letterRunes[rand.Intn(len(letterRunes))]
 	}
 	return string(b)
+}
+
+func GetMemoFromCommand(command string, fromWord int) string {
+	// check for memo in command
+	memo := ""
+	if len(strings.Split(command, " ")) > fromWord {
+		memo = strings.SplitN(command, " ", fromWord+1)[fromWord]
+		memoMaxLen := 159
+		if len(memo) > memoMaxLen {
+			memo = memo[:memoMaxLen]
+		}
+	}
+	return memo
 }

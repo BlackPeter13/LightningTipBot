@@ -92,6 +92,7 @@ func (bot TipBot) registerTelegramHandlers() {
 			"/advanced":             bot.advancedHelpHandler,
 			"/link":                 bot.lndhubHandler,
 			"/lnurl":                bot.lnurlHandler,
+			"/faucet":               bot.faucetHandler,
 			tb.OnPhoto:              bot.privatePhotoHandler,
 			tb.OnText:               bot.anyTextHandler,
 			tb.OnQuery:              bot.anyQueryHandler,
@@ -119,8 +120,16 @@ func (bot TipBot) registerTelegramHandlers() {
 
 		// register inline button handlers
 		// button for inline send
-		bot.telegram.Handle(&btnSendInline, bot.sendInlineHandler)
-		bot.telegram.Handle(&btnCancelSendInline, bot.cancelSendInlineHandler)
+		bot.telegram.Handle(&btnAcceptInlineSend, bot.acceptInlineSendHandler)
+		bot.telegram.Handle(&btnCancelInlineSend, bot.cancelInlineSendHandler)
+
+		// button for inline receive
+		bot.telegram.Handle(&btnAcceptInlineReceive, bot.acceptInlineReceiveHandler)
+		bot.telegram.Handle(&btnCancelInlineReceive, bot.cancelInlineReceiveHandler)
+
+		// // button for inline faucet
+		bot.telegram.Handle(&btnAcceptInlineFaucet, bot.accpetInlineFaucetHandler)
+		bot.telegram.Handle(&btnCancelInlineFaucet, bot.cancelInlineFaucetHandler)
 
 	})
 }
