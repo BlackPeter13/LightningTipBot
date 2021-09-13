@@ -3,9 +3,9 @@ package main
 import (
 	"strings"
 
-	"github.com/LightningTipBot/LightningTipBot/internal/lnbits"
 	log "github.com/sirupsen/logrus"
 
+	"github.com/LightningTipBot/LightningTipBot/internal/lnbits"
 	"github.com/LightningTipBot/LightningTipBot/pkg/lightning"
 	tb "gopkg.in/tucnak/telebot.v2"
 )
