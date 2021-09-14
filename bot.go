@@ -93,6 +93,8 @@ func (bot TipBot) registerTelegramHandlers() {
 			"/link":                 bot.lndhubHandler,
 			"/lnurl":                bot.lnurlHandler,
 			"/faucet":               bot.faucetHandler,
+			"/zapfhahn":             bot.faucetHandler,
+			"/kraan":                bot.faucetHandler,
 			tb.OnPhoto:              bot.privatePhotoHandler,
 			tb.OnText:               bot.anyTextHandler,
 			tb.OnQuery:              bot.anyQueryHandler,

@@ -101,7 +101,7 @@ func (bot TipBot) anyQueryHandler(q *tb.Query) {
 		bot.handleInlineSendQuery(q)
 	}
 
-	if strings.HasPrefix(q.Text, "faucet") || strings.HasPrefix(q.Text, "giveaway") {
+	if strings.HasPrefix(q.Text, "faucet") || strings.HasPrefix(q.Text, "giveaway") || strings.HasPrefix(q.Text, "zapfhahn") || strings.HasPrefix(q.Text, "kraan") {
 		bot.handleInlineFaucetQuery(q)
 	}
 
