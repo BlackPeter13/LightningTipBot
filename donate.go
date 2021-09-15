@@ -73,11 +73,7 @@ func (bot TipBot) donationHandler(ctx context.Context, m *tb.Message) {
 	}
 
 	// send donation invoice
-	user, err := GetUser(m.Sender, bot)
-	if err != nil {
-		return
-	}
-
+	user := LoadUser(ctx)
 	// bot.trySendMessage(user.Telegram, string(body))
 	_, err = user.Wallet.Pay(lnbits.PaymentParams{Out: true, Bolt11: string(body)}, *user.Wallet)
 	if err != nil {
