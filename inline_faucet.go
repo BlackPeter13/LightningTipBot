@@ -348,7 +348,7 @@ func (bot *TipBot) accpetInlineFaucetHandler(ctx context.Context, c *tb.Callback
 			}
 		}
 
-		if !bot.UserInitializedWallet(to.Telegram) {
+		if !to.Initialized {
 			inlineFaucet.UserNeedsWallet = true
 		}
 

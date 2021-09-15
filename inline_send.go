@@ -271,7 +271,7 @@ func (bot *TipBot) acceptInlineSendHandler(ctx context.Context, c *tb.Callback) 
 		inlineSend.Message = inlineSend.Message + fmt.Sprintf(inlineSendAppendMemo, memo)
 	}
 
-	if !bot.UserInitializedWallet(to.Telegram) {
+	if !to.Initialized {
 		inlineSend.Message += "\n\n" + fmt.Sprintf(inlineSendCreateWalletMessage, GetUserStrMd(bot.telegram.Me))
 	}
 

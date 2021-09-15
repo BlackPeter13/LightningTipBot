@@ -87,14 +87,6 @@ func appendUinqueUsersToSlice(slice []*tb.User, i *tb.User) []*tb.User {
 	return append(slice, i)
 }
 
-func (bot *TipBot) UserInitializedWallet(user *tb.User) bool {
-	toUser, err := GetUser(user, *bot)
-	if err != nil {
-		return false
-	}
-	return toUser.Initialized
-}
-
 func (bot *TipBot) GetUserBalance(user *lnbits.User) (amount int, err error) {
 
 	wallet, err := user.Wallet.Info(*user.Wallet)
