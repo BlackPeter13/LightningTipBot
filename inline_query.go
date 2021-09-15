@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
@@ -87,7 +88,7 @@ func (bot TipBot) anyChosenInlineHandler(q *tb.ChosenInlineResult) {
 	fmt.Printf(q.Query)
 }
 
-func (bot TipBot) anyQueryHandler(q *tb.Query) {
+func (bot TipBot) anyQueryHandler(ctx context.Context, q *tb.Query) {
 	if q.Text == "" {
 		bot.inlineQueryInstructions(q)
 		return
@@ -98,11 +99,11 @@ func (bot TipBot) anyQueryHandler(q *tb.Query) {
 		q.Text = strings.TrimPrefix(q.Text, "/")
 	}
 	if strings.HasPrefix(q.Text, "send") || strings.HasPrefix(q.Text, "pay") {
-		bot.handleInlineSendQuery(q)
+		bot.handleInlineSendQuery(ctx, q)
 	}
 
 	if strings.HasPrefix(q.Text, "faucet") || strings.HasPrefix(q.Text, "giveaway") || strings.HasPrefix(q.Text, "zapfhahn") || strings.HasPrefix(q.Text, "kraan") {
-		bot.handleInlineFaucetQuery(q)
+		bot.handleInlineFaucetQuery(ctx, q)
 	}
 
 	if strings.HasPrefix(q.Text, "receive") || strings.HasPrefix(q.Text, "get") || strings.HasPrefix(q.Text, "payme") || strings.HasPrefix(q.Text, "request") {

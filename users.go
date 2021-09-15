@@ -95,26 +95,22 @@ func (bot *TipBot) UserInitializedWallet(user *tb.User) bool {
 	return toUser.Initialized
 }
 
-func (bot *TipBot) GetUserBalance(user *tb.User) (amount int, err error) {
-	// get user
-	fromUser, err := GetUser(user, *bot)
+func (bot *TipBot) GetUserBalance(user *lnbits.User) (amount int, err error) {
+
+	wallet, err := user.Wallet.Info(*user.Wallet)
 	if err != nil {
-		return
-	}
-	wallet, err := fromUser.Wallet.Info(*fromUser.Wallet)
-	if err != nil {
-		errmsg := fmt.Sprintf("[GetUserBalance] Error: Couldn't fetch user %s's info from LNbits: %s", GetUserStr(user), err)
+		errmsg := fmt.Sprintf("[GetUserBalance] Error: Couldn't fetch user %s's info from LNbits: %s", GetUserStr(user.Telegram), err)
 		log.Errorln(errmsg)
 		return
 	}
-	fromUser.Wallet.Balance = wallet.Balance
-	err = UpdateUserRecord(fromUser, *bot)
+	user.Wallet.Balance = wallet.Balance
+	err = UpdateUserRecord(user, *bot)
 	if err != nil {
 		return
 	}
 	// msat to sat
 	amount = int(wallet.Balance) / 1000
-	log.Infof("[GetUserBalance] %s's balance: %d sat\n", GetUserStr(user), amount)
+	log.Infof("[GetUserBalance] %s's balance: %d sat\n", GetUserStr(user.Telegram), amount)
 	return
 }
 
@@ -125,7 +121,7 @@ func (bot *TipBot) copyLowercaseUser(u *tb.User) *tb.User {
 	return &userCopy
 }
 
-func (bot *TipBot) CreateWalletForTelegramUser(tbUser *tb.User) error {
+func (bot *TipBot) CreateWalletForTelegramUser(tbUser *tb.User) (*lnbits.User, error) {
 	userCopy := bot.copyLowercaseUser(tbUser)
 	user := &lnbits.User{Telegram: userCopy}
 	userStr := GetUserStr(tbUser)
@@ -134,14 +130,14 @@ func (bot *TipBot) CreateWalletForTelegramUser(tbUser *tb.User) error {
 	if err != nil {
 		errmsg := fmt.Sprintf("[CreateWalletForTelegramUser] Error: Could not create wallet for user %s", userStr)
 		log.Errorln(errmsg)
-		return err
+		return user, err
 	}
 	tx := bot.database.Save(user)
 	if tx.Error != nil {
-		return tx.Error
+		return nil, tx.Error
 	}
 	log.Printf("[CreateWalletForTelegramUser] Wallet created for user %s. ", userStr)
-	return nil
+	return user, nil
 }
 
 func (bot *TipBot) UserExists(user *tb.User) (*lnbits.User, bool) {

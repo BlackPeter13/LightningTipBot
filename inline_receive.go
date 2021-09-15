@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -177,7 +178,7 @@ func (bot TipBot) handleInlineReceiveQuery(q *tb.Query) {
 	}
 }
 
-func (bot *TipBot) acceptInlineReceiveHandler(c *tb.Callback) {
+func (bot *TipBot) acceptInlineReceiveHandler(ctx context.Context, c *tb.Callback) {
 	inlineReceive, err := bot.getInlineReceive(c)
 	// immediatelly set intransaction to block duplicate calls
 	if err != nil {
@@ -199,20 +200,25 @@ func (bot *TipBot) acceptInlineReceiveHandler(c *tb.Callback) {
 
 	// user `from` is the one who is SENDING
 	// user `to` is the one who is RECEIVING
-	from := c.Sender
-	to := inlineReceive.To
-	toUserStrMd := GetUserStrMd(to)
-	fromUserStrMd := GetUserStrMd(from)
-	toUserStr := GetUserStr(to)
-	fromUserStr := GetUserStr(from)
-
-	if from.ID == to.ID {
-		bot.trySendMessage(from, sendYourselfMessage)
+	from := LoadUser(ctx)
+	to, err := GetUser(inlineReceive.To, *bot)
+	if err != nil {
+		log.Errorf("[acceptInlineSendHandler] %s", err)
 		return
 	}
 
+	toUserStrMd := GetUserStrMd(to.Telegram)
+	fromUserStrMd := GetUserStrMd(from.Telegram)
+	toUserStr := GetUserStr(to.Telegram)
+	fromUserStr := GetUserStr(from.Telegram)
+
+	if from.ID == to.ID {
+		bot.trySendMessage(from.Telegram, sendYourselfMessage)
+		return
+	}
+	fromUser := LoadUser(ctx)
 	// balance check of the user
-	balance, err := bot.GetUserBalance(from)
+	balance, err := bot.GetUserBalance(fromUser)
 	if err != nil {
 		errmsg := fmt.Sprintf("could not get balance of user %s", fromUserStr)
 		log.Errorln(errmsg)
@@ -221,7 +227,7 @@ func (bot *TipBot) acceptInlineReceiveHandler(c *tb.Callback) {
 	// check if fromUser has balance
 	if balance < inlineReceive.Amount {
 		log.Errorln("[acceptInlineReceiveHandler] balance of user %s too low", fromUserStr)
-		bot.trySendMessage(from, fmt.Sprintf(inlineSendBalanceLowMessage, balance))
+		bot.trySendMessage(from.Telegram, fmt.Sprintf(inlineSendBalanceLowMessage, balance))
 		return
 	}
 
@@ -230,14 +236,14 @@ func (bot *TipBot) acceptInlineReceiveHandler(c *tb.Callback) {
 
 	// todo: user new get username function to get userStrings
 	transactionMemo := fmt.Sprintf("Send from %s to %s (%d sat).", fromUserStr, toUserStr, inlineReceive.Amount)
-	t := NewTransaction(bot, from, to, inlineReceive.Amount, TransactionType("inline send"))
+	t := NewTransaction(bot, fromUser, to, inlineReceive.Amount, TransactionType("inline send"))
 	t.Memo = transactionMemo
 	success, err := t.Send()
 	if !success {
 		if err != nil {
-			bot.trySendMessage(from, fmt.Sprintf(tipErrorMessage, err))
+			bot.trySendMessage(from.Telegram, fmt.Sprintf(tipErrorMessage, err))
 		} else {
-			bot.trySendMessage(from, fmt.Sprintf(tipErrorMessage, tipUndefinedErrorMsg))
+			bot.trySendMessage(from.Telegram, fmt.Sprintf(tipErrorMessage, tipUndefinedErrorMsg))
 		}
 		errMsg := fmt.Sprintf("[acceptInlineReceiveHandler] Transaction failed: %s", err)
 		log.Errorln(errMsg)
@@ -253,14 +259,14 @@ func (bot *TipBot) acceptInlineReceiveHandler(c *tb.Callback) {
 		inlineReceive.Message = inlineReceive.Message + fmt.Sprintf(inlineReceiveAppendMemo, memo)
 	}
 
-	if !bot.UserInitializedWallet(to) {
+	if !bot.UserInitializedWallet(to.Telegram) {
 		inlineReceive.Message += "\n\n" + fmt.Sprintf(inlineSendCreateWalletMessage, GetUserStrMd(bot.telegram.Me))
 	}
 
 	bot.tryEditMessage(c.Message, inlineReceive.Message, &tb.ReplyMarkup{})
 	// notify users
-	_, err = bot.telegram.Send(to, fmt.Sprintf(sendReceivedMessage, fromUserStrMd, inlineReceive.Amount))
-	_, err = bot.telegram.Send(from, fmt.Sprintf(tipSentMessage, inlineReceive.Amount, toUserStrMd))
+	_, err = bot.telegram.Send(to.Telegram, fmt.Sprintf(sendReceivedMessage, fromUserStrMd, inlineReceive.Amount))
+	_, err = bot.telegram.Send(from.Telegram, fmt.Sprintf(tipSentMessage, inlineReceive.Amount, toUserStrMd))
 	if err != nil {
 		errmsg := fmt.Errorf("[acceptInlineReceiveHandler] Error: Receive message to %s: %s", toUserStr, err)
 		log.Errorln(errmsg)

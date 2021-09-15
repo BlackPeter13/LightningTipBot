@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"time"
@@ -127,7 +128,7 @@ func (bot *TipBot) getInlineFaucet(c *tb.Callback) (*InlineFaucet, error) {
 
 }
 
-func (bot TipBot) faucetHandler(m *tb.Message) {
+func (bot TipBot) faucetHandler(ctx context.Context, m *tb.Message) {
 	if m.Private() {
 		bot.trySendMessage(m.Sender, fmt.Sprintf(inlineFaucetHelpText, inlineFaucetHelpFaucetInGroup))
 		return
@@ -159,9 +160,9 @@ func (bot TipBot) faucetHandler(m *tb.Message) {
 		return
 	}
 	inlineFaucet.NTotal = inlineFaucet.Amount / inlineFaucet.PerUserAmount
-
+	fromUser := LoadUser(ctx)
 	fromUserStr := GetUserStr(m.Sender)
-	balance, err := bot.GetUserBalance(m.Sender)
+	balance, err := bot.GetUserBalance(fromUser)
 	if err != nil {
 		errmsg := fmt.Sprintf("could not get balance of user %s", fromUserStr)
 		log.Errorln(errmsg)
@@ -199,7 +200,7 @@ func (bot TipBot) faucetHandler(m *tb.Message) {
 
 }
 
-func (bot TipBot) handleInlineFaucetQuery(q *tb.Query) {
+func (bot TipBot) handleInlineFaucetQuery(ctx context.Context, q *tb.Query) {
 	inlineFaucet := NewInlineFaucet()
 	var err error
 	inlineFaucet.Amount, err = decodeAmountFromCommand(q.Text)
@@ -228,9 +229,9 @@ func (bot TipBot) handleInlineFaucetQuery(q *tb.Query) {
 		return
 	}
 	inlineFaucet.NTotal = inlineFaucet.Amount / inlineFaucet.PerUserAmount
-
+	fromUser := LoadUser(ctx)
 	fromUserStr := GetUserStr(&q.From)
-	balance, err := bot.GetUserBalance(&q.From)
+	balance, err := bot.GetUserBalance(fromUser)
 	if err != nil {
 		errmsg := fmt.Sprintf("could not get balance of user %s", fromUserStr)
 		log.Errorln(errmsg)
@@ -292,10 +293,17 @@ func (bot TipBot) handleInlineFaucetQuery(q *tb.Query) {
 	}
 }
 
-func (bot *TipBot) accpetInlineFaucetHandler(c *tb.Callback) {
+func (bot *TipBot) accpetInlineFaucetHandler(ctx context.Context, c *tb.Callback) {
+	to := LoadUser(ctx)
+
 	inlineFaucet, err := bot.getInlineFaucet(c)
 	if err != nil {
 		log.Errorf("[faucet] %s", err)
+		return
+	}
+	from, err := GetUser(inlineFaucet.From, *bot)
+	if err != nil {
+		log.Errorf("[acceptInlineSendHandler] %s", err)
 		return
 	}
 	err = bot.LockFaucet(inlineFaucet)
@@ -310,32 +318,29 @@ func (bot *TipBot) accpetInlineFaucetHandler(c *tb.Callback) {
 	// release faucet no matter what
 	defer bot.ReleaseFaucet(inlineFaucet)
 
-	to := c.Sender
-	from := inlineFaucet.From
-
-	if from.ID == to.ID {
-		bot.trySendMessage(from, sendYourselfMessage)
+	if from.Telegram.ID == to.Telegram.ID {
+		bot.trySendMessage(from.Telegram, sendYourselfMessage)
 		return
 	}
 	// check if to user has already taken from the faucet
 	for _, a := range inlineFaucet.To {
-		if a.ID == to.ID {
+		if a.ID == to.Telegram.ID {
 			// to user is already in To slice, has taken from facuet
-			log.Infof("[faucet] %s already took from faucet %s", GetUserStr(to), inlineFaucet.ID)
+			log.Infof("[faucet] %s already took from faucet %s", GetUserStr(to.Telegram), inlineFaucet.ID)
 			return
 		}
 	}
 
 	if inlineFaucet.RemainingAmount >= inlineFaucet.PerUserAmount {
-		toUserStrMd := GetUserStrMd(to)
-		fromUserStrMd := GetUserStrMd(from)
-		toUserStr := GetUserStr(to)
-		fromUserStr := GetUserStr(from)
+		toUserStrMd := GetUserStrMd(to.Telegram)
+		fromUserStrMd := GetUserStrMd(from.Telegram)
+		toUserStr := GetUserStr(to.Telegram)
+		fromUserStr := GetUserStr(from.Telegram)
 		// check if user exists and create a wallet if not
-		_, exists := bot.UserExists(to)
+		_, exists := bot.UserExists(to.Telegram)
 		if !exists {
 			log.Infof("[faucet] User %s has no wallet.", toUserStr)
-			err = bot.CreateWalletForTelegramUser(to)
+			to, err = bot.CreateWalletForTelegramUser(to.Telegram)
 			if err != nil {
 				errmsg := fmt.Errorf("[faucet] Error: Could not create wallet for %s", toUserStr)
 				log.Errorln(errmsg)
@@ -343,7 +348,7 @@ func (bot *TipBot) accpetInlineFaucetHandler(c *tb.Callback) {
 			}
 		}
 
-		if !bot.UserInitializedWallet(to) {
+		if !bot.UserInitializedWallet(to.Telegram) {
 			inlineFaucet.UserNeedsWallet = true
 		}
 
@@ -355,9 +360,9 @@ func (bot *TipBot) accpetInlineFaucetHandler(c *tb.Callback) {
 		success, err := t.Send()
 		if !success {
 			if err != nil {
-				bot.trySendMessage(from, fmt.Sprintf(tipErrorMessage, err))
+				bot.trySendMessage(from.Telegram, fmt.Sprintf(tipErrorMessage, err))
 			} else {
-				bot.trySendMessage(from, fmt.Sprintf(tipErrorMessage, tipUndefinedErrorMsg))
+				bot.trySendMessage(from.Telegram, fmt.Sprintf(tipErrorMessage, tipUndefinedErrorMsg))
 			}
 			errMsg := fmt.Sprintf("[faucet] Transaction failed: %s", err)
 			log.Errorln(errMsg)
@@ -366,11 +371,11 @@ func (bot *TipBot) accpetInlineFaucetHandler(c *tb.Callback) {
 
 		log.Infof("[faucet] faucet %s: %d sat from %s to %s ", inlineFaucet.ID, inlineFaucet.PerUserAmount, fromUserStr, toUserStr)
 		inlineFaucet.NTaken += 1
-		inlineFaucet.To = append(inlineFaucet.To, to)
+		inlineFaucet.To = append(inlineFaucet.To, to.Telegram)
 		inlineFaucet.RemainingAmount = inlineFaucet.RemainingAmount - inlineFaucet.PerUserAmount
 
-		_, err = bot.telegram.Send(to, fmt.Sprintf(inlineFaucetReceivedMessage, fromUserStrMd, inlineFaucet.PerUserAmount))
-		_, err = bot.telegram.Send(from, fmt.Sprintf(inlineFaucetSentMessage, inlineFaucet.PerUserAmount, toUserStrMd))
+		_, err = bot.telegram.Send(to.Telegram, fmt.Sprintf(inlineFaucetReceivedMessage, fromUserStrMd, inlineFaucet.PerUserAmount))
+		_, err = bot.telegram.Send(from.Telegram, fmt.Sprintf(inlineFaucetSentMessage, inlineFaucet.PerUserAmount, toUserStrMd))
 		if err != nil {
 			errmsg := fmt.Errorf("[faucet] Error: Send message to %s: %s", toUserStr, err)
 			log.Errorln(errmsg)

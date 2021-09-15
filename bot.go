@@ -1,8 +1,9 @@
 package main
 
 import (
+	"context"
 	"fmt"
-	"strings"
+	"github.com/LightningTipBot/LightningTipBot/internal/telegram/intercept"
 	"sync"
 	"time"
 
@@ -66,7 +67,7 @@ func newTelegramBot() *tb.Bot {
 // todo -- may want to derive user wallets from this specific bot wallet (master wallet), since lnbits usermanager extension is able to do that.
 func (bot TipBot) initBotWallet() error {
 	botWalletInitialisation.Do(func() {
-		err := bot.initWallet(bot.telegram.Me)
+		_, err := bot.initWallet(bot.telegram.Me)
 		if err != nil {
 			log.Errorln(fmt.Sprintf("[initBotWallet] Could not initialize bot wallet: %s", err.Error()))
 			return
@@ -75,63 +76,181 @@ func (bot TipBot) initBotWallet() error {
 	return nil
 }
 
+type CommandEndpoint struct {
+}
+type Handler struct {
+	Endpoint    []interface{}
+	Handler     interface{}
+	Interceptor *Interceptor
+}
+
 // registerTelegramHandlers will register all telegram handlers.
 func (bot TipBot) registerTelegramHandlers() {
 	telegramHandlerRegistration.Do(func() {
 		// Set up handlers
-		var endpointHandler = map[string]interface{}{
-			"/tip":                  bot.tipHandler,
-			"/pay":                  bot.confirmPaymentHandler,
-			"/invoice":              bot.invoiceHandler,
-			"/balance":              bot.balanceHandler,
-			"/start":                bot.startHandler,
-			"/send":                 bot.confirmSendHandler,
-			"/help":                 bot.helpHandler,
-			"/basics":               bot.basicsHandler,
-			"/donate":               bot.donationHandler,
-			"/advanced":             bot.advancedHelpHandler,
-			"/link":                 bot.lndhubHandler,
-			"/lnurl":                bot.lnurlHandler,
-			"/faucet":               bot.faucetHandler,
-			"/zapfhahn":             bot.faucetHandler,
-			"/kraan":                bot.faucetHandler,
-			tb.OnPhoto:              bot.privatePhotoHandler,
-			tb.OnText:               bot.anyTextHandler,
-			tb.OnQuery:              bot.anyQueryHandler,
-			tb.OnChosenInlineResult: bot.anyChosenInlineHandler,
+		var handler = []Handler{
+			{
+				Endpoint: []interface{}{"/start"},
+				Handler:  bot.startHandler,
+			},
+			{
+				Endpoint:    []interface{}{"/faucet", "/zapfhahn", "/kraan"},
+				Handler:     bot.faucetHandler,
+				Interceptor: &Interceptor{Type: MessageInterceptor, BeforeMessage: []intercept.MessageFunc{bot.loadUserInterceptor}},
+			},
+			{
+				Endpoint:    []interface{}{"/tip"},
+				Handler:     bot.tipHandler,
+				Interceptor: &Interceptor{Type: MessageInterceptor, BeforeMessage: []intercept.MessageFunc{bot.loadUserInterceptor, bot.loadReplyToInterceptor}},
+			},
+			{
+				Endpoint:    []interface{}{"/pay"},
+				Handler:     bot.confirmPaymentHandler,
+				Interceptor: &Interceptor{Type: MessageInterceptor, BeforeMessage: []intercept.MessageFunc{bot.loadUserInterceptor}},
+			},
+			{
+				Endpoint:    []interface{}{"/invoice"},
+				Handler:     bot.invoiceHandler,
+				Interceptor: &Interceptor{Type: MessageInterceptor, BeforeMessage: []intercept.MessageFunc{bot.loadUserInterceptor}},
+			},
+			{
+				Endpoint:    []interface{}{"/balance"},
+				Handler:     bot.balanceHandler,
+				Interceptor: &Interceptor{Type: MessageInterceptor, BeforeMessage: []intercept.MessageFunc{bot.loadUserInterceptor}},
+			},
+			{
+				Endpoint:    []interface{}{"/send"},
+				Handler:     bot.confirmSendHandler,
+				Interceptor: &Interceptor{Type: MessageInterceptor, BeforeMessage: []intercept.MessageFunc{bot.loadUserInterceptor}},
+			},
+			{
+				Endpoint:    []interface{}{"/help"},
+				Handler:     bot.helpHandler,
+				Interceptor: &Interceptor{Type: MessageInterceptor, BeforeMessage: []intercept.MessageFunc{bot.loadUserInterceptor}},
+			},
+			{
+				Endpoint:    []interface{}{"/basics"},
+				Handler:     bot.basicsHandler,
+				Interceptor: &Interceptor{Type: MessageInterceptor, BeforeMessage: []intercept.MessageFunc{bot.loadUserInterceptor}},
+			},
+			{
+				Endpoint:    []interface{}{"/donate"},
+				Handler:     bot.donationHandler,
+				Interceptor: &Interceptor{Type: MessageInterceptor, BeforeMessage: []intercept.MessageFunc{bot.loadUserInterceptor}},
+			},
+			{
+				Endpoint:    []interface{}{"/advanced"},
+				Handler:     bot.advancedHelpHandler,
+				Interceptor: &Interceptor{Type: MessageInterceptor, BeforeMessage: []intercept.MessageFunc{bot.loadUserInterceptor}},
+			},
+			{
+				Endpoint:    []interface{}{"/link"},
+				Handler:     bot.lndhubHandler,
+				Interceptor: &Interceptor{Type: MessageInterceptor, BeforeMessage: []intercept.MessageFunc{bot.loadUserInterceptor}},
+			},
+			{
+				Endpoint:    []interface{}{"/lnurl"},
+				Handler:     bot.lnurlHandler,
+				Interceptor: &Interceptor{Type: MessageInterceptor, BeforeMessage: []intercept.MessageFunc{bot.loadUserInterceptor}},
+			},
+			{
+				Endpoint:    []interface{}{tb.OnPhoto},
+				Handler:     bot.privatePhotoHandler,
+				Interceptor: &Interceptor{Type: MessageInterceptor, BeforeMessage: []intercept.MessageFunc{bot.loadUserInterceptor}},
+			},
+			{
+				Endpoint:    []interface{}{tb.OnText},
+				Handler:     bot.anyTextHandler,
+				Interceptor: &Interceptor{Type: MessageInterceptor, BeforeMessage: []intercept.MessageFunc{bot.loadUserInterceptor}},
+			},
+			{
+				Endpoint:    []interface{}{tb.OnQuery},
+				Handler:     bot.anyQueryHandler,
+				Interceptor: &Interceptor{Type: QueryInterceptor, BeforeQuery: []intercept.QueryFunc{bot.loadUserQueryInterceptor}},
+			},
+			{
+				Endpoint: []interface{}{tb.OnChosenInlineResult},
+				Handler:  bot.anyChosenInlineHandler,
+			},
+			{
+				Endpoint:    []interface{}{&btnPay},
+				Handler:     bot.payHandler,
+				Interceptor: &Interceptor{Type: CallbackInterceptor, BeforeCallback: []intercept.CallbackFunc{bot.loadUserCallbackInterceptor}},
+			},
+			{
+				Endpoint:    []interface{}{&btnCancelPay},
+				Handler:     bot.cancelPaymentHandler,
+				Interceptor: &Interceptor{Type: CallbackInterceptor, BeforeCallback: []intercept.CallbackFunc{bot.loadUserCallbackInterceptor}},
+			},
+			{
+				Endpoint:    []interface{}{&btnSend},
+				Handler:     bot.sendHandler,
+				Interceptor: &Interceptor{Type: CallbackInterceptor, BeforeCallback: []intercept.CallbackFunc{bot.loadUserCallbackInterceptor}},
+			},
+			{
+				Endpoint:    []interface{}{&btnCancelSend},
+				Handler:     bot.cancelSendHandler,
+				Interceptor: &Interceptor{Type: CallbackInterceptor, BeforeCallback: []intercept.CallbackFunc{bot.loadUserCallbackInterceptor}},
+			},
+			{
+				Endpoint:    []interface{}{&btnAcceptInlineSend},
+				Handler:     bot.acceptInlineSendHandler,
+				Interceptor: &Interceptor{Type: CallbackInterceptor, BeforeCallback: []intercept.CallbackFunc{bot.loadUserCallbackInterceptor}},
+			},
+			{
+				Endpoint: []interface{}{&btnCancelInlineSend},
+				Handler:  bot.cancelInlineSendHandler,
+			},
+			{
+				Endpoint:    []interface{}{&btnAcceptInlineReceive},
+				Handler:     bot.acceptInlineReceiveHandler,
+				Interceptor: &Interceptor{Type: CallbackInterceptor, BeforeCallback: []intercept.CallbackFunc{bot.loadUserCallbackInterceptor}},
+			},
+			{
+				Endpoint: []interface{}{&btnCancelInlineReceive},
+				Handler:  bot.cancelInlineReceiveHandler,
+			},
+			{
+				Endpoint:    []interface{}{&btnAcceptInlineFaucet},
+				Handler:     bot.accpetInlineFaucetHandler,
+				Interceptor: &Interceptor{Type: CallbackInterceptor, BeforeCallback: []intercept.CallbackFunc{bot.loadUserCallbackInterceptor}},
+			},
+			{
+				Endpoint: []interface{}{&btnCancelInlineFaucet},
+				Handler:  bot.cancelInlineFaucetHandler,
+			},
 		}
-		// assign handler to endpoint
-		for endpoint, handler := range endpointHandler {
-			log.Debugf("Registering: %s", endpoint)
-			bot.telegram.Handle(endpoint, handler)
 
-			// if the endpoint is a string command (not photo etc)
-			if strings.HasPrefix(endpoint, "/") {
-				// register upper case versions as well
-				bot.telegram.Handle(strings.ToUpper(endpoint), handler)
+		for _, h := range handler {
+			for _, endpoint := range h.Endpoint {
+				fmt.Println("registering", endpoint)
+				if h.Interceptor != nil {
+					switch h.Interceptor.Type {
+					case MessageInterceptor:
+						bot.telegram.Handle(endpoint,
+							intercept.HandlerWithMessage(h.Handler.(func(ctx context.Context, query *tb.Message)),
+								intercept.WithBeforeMessage(h.Interceptor.BeforeMessage...),
+								intercept.WithAfterMessage(h.Interceptor.AfterMessage...)))
+
+					case QueryInterceptor:
+						bot.telegram.Handle(endpoint,
+							intercept.HandlerWithQuery(h.Handler.(func(ctx context.Context, query *tb.Query)),
+								intercept.WithBeforeQuery(h.Interceptor.BeforeQuery...),
+								intercept.WithAfterQuery(h.Interceptor.AfterQuery...)))
+
+					case CallbackInterceptor:
+						bot.telegram.Handle(endpoint,
+							intercept.HandlerWithCallback(h.Handler.(func(ctx context.Context, callback *tb.Callback)),
+								intercept.WithBeforeCallback(h.Interceptor.BeforeCallback...),
+								intercept.WithAfterCallback(h.Interceptor.AfterCallback...)))
+
+					}
+				} else {
+					bot.telegram.Handle(endpoint, h.Handler)
+				}
+
 			}
 		}
-
-		// button handlers
-		// for /pay
-		bot.telegram.Handle(&btnPay, bot.payHandler)
-		bot.telegram.Handle(&btnCancelPay, bot.cancelPaymentHandler)
-		// for /send
-		bot.telegram.Handle(&btnSend, bot.sendHandler)
-		bot.telegram.Handle(&btnCancelSend, bot.cancelSendHandler)
-
-		// register inline button handlers
-		// button for inline send
-		bot.telegram.Handle(&btnAcceptInlineSend, bot.acceptInlineSendHandler)
-		bot.telegram.Handle(&btnCancelInlineSend, bot.cancelInlineSendHandler)
-
-		// button for inline receive
-		bot.telegram.Handle(&btnAcceptInlineReceive, bot.acceptInlineReceiveHandler)
-		bot.telegram.Handle(&btnCancelInlineReceive, bot.cancelInlineReceiveHandler)
-
-		// // button for inline faucet
-		bot.telegram.Handle(&btnAcceptInlineFaucet, bot.accpetInlineFaucetHandler)
-		bot.telegram.Handle(&btnCancelInlineFaucet, bot.cancelInlineFaucetHandler)
 
 	})
 }

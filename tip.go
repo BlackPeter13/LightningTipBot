@@ -1,7 +1,9 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"github.com/LightningTipBot/LightningTipBot/internal/lnbits"
 	"strings"
 	"time"
 
@@ -40,11 +42,11 @@ func TipCheckSyntax(m *tb.Message) (bool, string) {
 	return true, ""
 }
 
-func (bot *TipBot) tipHandler(m *tb.Message) {
+func (bot *TipBot) tipHandler(ctx context.Context, m *tb.Message) {
 	// delete the tip message after a few seconds, this is default behaviour
 	defer NewMessage(m, WithDuration(time.Second*time.Duration(Configuration.Telegram.MessageDisposeDuration), bot.telegram))
 	// check and print all commands
-	bot.anyTextHandler(m)
+	bot.anyTextHandler(ctx, m)
 	// only if message is a reply
 	if !m.IsReply() {
 		NewMessage(m, WithDuration(0, bot.telegram))
@@ -70,14 +72,14 @@ func (bot *TipBot) tipHandler(m *tb.Message) {
 		return
 	}
 
-	err = bot.parseCmdDonHandler(m)
+	err = bot.parseCmdDonHandler(ctx, m)
 	if err == nil {
 		return
 	}
 	// TIP COMMAND IS VALID
+	from := ctx.Value("user").(*lnbits.User)
 
-	to := m.ReplyTo.Sender
-	from := m.Sender
+	to := ctx.Value("reply_to_user").(*lnbits.User)
 
 	if from.ID == to.ID {
 		NewMessage(m, WithDuration(0, bot.telegram))
@@ -85,14 +87,14 @@ func (bot *TipBot) tipHandler(m *tb.Message) {
 		return
 	}
 
-	toUserStrMd := GetUserStrMd(m.ReplyTo.Sender)
-	fromUserStrMd := GetUserStrMd(from)
-	toUserStr := GetUserStr(m.ReplyTo.Sender)
-	fromUserStr := GetUserStr(from)
+	toUserStrMd := GetUserStrMd(to.Telegram)
+	fromUserStrMd := GetUserStrMd(from.Telegram)
+	toUserStr := GetUserStr(to.Telegram)
+	fromUserStr := GetUserStr(from.Telegram)
 
-	if _, exists := bot.UserExists(to); !exists {
+	if _, exists := bot.UserExists(to.Telegram); !exists {
 		log.Infof("[/tip] User %s has no wallet.", toUserStr)
-		err = bot.CreateWalletForTelegramUser(to)
+		to, err = bot.CreateWalletForTelegramUser(to.Telegram)
 		if err != nil {
 			errmsg := fmt.Errorf("[/tip] Error: Could not create wallet for %s", toUserStr)
 			log.Errorln(errmsg)
@@ -128,12 +130,12 @@ func (bot *TipBot) tipHandler(m *tb.Message) {
 	}
 
 	// update tooltip if necessary
-	messageHasTip := tipTooltipHandler(m, bot, amount, bot.UserInitializedWallet(to))
+	messageHasTip := tipTooltipHandler(m, bot, amount, to.Initialized)
 
 	log.Infof("[tip] %d sat from %s to %s", amount, fromUserStr, toUserStr)
 
 	// notify users
-	_, err = bot.telegram.Send(from, fmt.Sprintf(tipSentMessage, amount, toUserStrMd))
+	_, err = bot.telegram.Send(from.Telegram, fmt.Sprintf(tipSentMessage, amount, toUserStrMd))
 	if err != nil {
 		errmsg := fmt.Errorf("[/tip] Error: Send message to %s: %s", toUserStr, err)
 		log.Errorln(errmsg)
@@ -142,12 +144,12 @@ func (bot *TipBot) tipHandler(m *tb.Message) {
 
 	// forward tipped message to user once
 	if !messageHasTip {
-		bot.tryForwardMessage(to, m.ReplyTo, tb.Silent)
+		bot.tryForwardMessage(to.Telegram, m.ReplyTo, tb.Silent)
 	}
-	bot.trySendMessage(to, fmt.Sprintf(tipReceivedMessage, fromUserStrMd, amount))
+	bot.trySendMessage(to.Telegram, fmt.Sprintf(tipReceivedMessage, fromUserStrMd, amount))
 
 	if len(tipMemo) > 0 {
-		bot.trySendMessage(to, fmt.Sprintf("✉️ %s", MarkdownEscape(tipMemo)))
+		bot.trySendMessage(to.Telegram, fmt.Sprintf("✉️ %s", MarkdownEscape(tipMemo)))
 	}
 	return
 }
