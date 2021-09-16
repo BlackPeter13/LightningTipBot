@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/LightningTipBot/LightningTipBot/internal/lnbits"
 	"time"
 
 	"github.com/LightningTipBot/LightningTipBot/internal/runtime"
@@ -32,14 +33,14 @@ var (
 )
 
 type InlineSend struct {
-	Message       string   `json:"inline_send_message"`
-	Amount        int      `json:"inline_send_amount"`
-	From          *tb.User `json:"inline_send_from"`
-	To            *tb.User `json:"inline_send_to"`
-	Memo          string   `json:"inline_send_memo"`
-	ID            string   `json:"inline_send_id"`
-	Active        bool     `json:"inline_send_active"`
-	InTransaction bool     `json:"inline_send_intransaction"`
+	Message       string       `json:"inline_send_message"`
+	Amount        int          `json:"inline_send_amount"`
+	From          *lnbits.User `json:"inline_send_from"`
+	To            *tb.User     `json:"inline_send_to"`
+	Memo          string       `json:"inline_send_memo"`
+	ID            string       `json:"inline_send_id"`
+	Active        bool         `json:"inline_send_active"`
+	InTransaction bool         `json:"inline_send_intransaction"`
 }
 
 func NewInlineSend() *InlineSend {
@@ -177,7 +178,7 @@ func (bot TipBot) handleInlineSendQuery(ctx context.Context, q *tb.Query) {
 		// add data to persistent object
 		inlineSend.Message = inlineMessage
 		inlineSend.ID = id
-		inlineSend.From = &q.From
+		inlineSend.From = fromUser
 		// add result to persistent struct
 		runtime.IgnoreError(bot.bunt.Set(inlineSend))
 	}
@@ -200,11 +201,8 @@ func (bot *TipBot) acceptInlineSendHandler(ctx context.Context, c *tb.Callback) 
 		log.Errorf("[acceptInlineSendHandler] %s", err)
 		return
 	}
-	fromUser, err := GetUser(inlineSend.From, *bot)
-	if err != nil {
-		log.Errorf("[acceptInlineSendHandler] %s", err)
-		return
-	}
+	fromUser := inlineSend.From
+	fromUser.Wallet.Client = bot.client
 	// immediatelly set intransaction to block duplicate calls
 	err = bot.LockSend(inlineSend)
 	if err != nil {
@@ -292,7 +290,7 @@ func (bot *TipBot) cancelInlineSendHandler(c *tb.Callback) {
 		log.Errorf("[cancelInlineSendHandler] %s", err)
 		return
 	}
-	if c.Sender.ID == inlineSend.From.ID {
+	if c.Sender.ID == inlineSend.From.Telegram.ID {
 		bot.tryEditMessage(c.Message, sendCancelledMessage, &tb.ReplyMarkup{})
 		// set the inlineSend inactive
 		inlineSend.Active = false
