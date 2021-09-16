@@ -1,8 +1,8 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/LightningTipBot/LightningTipBot/internal/lnbits"
@@ -49,6 +49,13 @@ func (bot *TipBot) SendCheckSyntax(m *tb.Message) (bool, string) {
 	// 	return false, "Did you enter a valid command?"
 	// }
 	return true, ""
+}
+
+type SendData struct {
+	ToTelegramId   int
+	ToTelegramUser string
+	Memo           string
+	Amount         int64
 }
 
 // confirmPaymentHandler invoked on "/send 123 @user" command
@@ -163,12 +170,17 @@ func (bot *TipBot) confirmSendHandler(m *tb.Message) {
 		return
 	}
 	// string that holds all information about the send payment
-	sendData := strconv.Itoa(toUserDb.Telegram.ID) + "|" + toUserStrWithoutAt + "|" +
-		strconv.Itoa(amount)
+	sendData := SendData{Amount: int64(amount), ToTelegramId: toUserDb.Telegram.ID, ToTelegramUser: toUserStrWithoutAt}
 	if len(sendMemo) > 0 {
-		sendData = sendData + "|" + sendMemo
+		sendData.Memo = sendMemo
 	}
-
+	sendDataJson, err := json.Marshal(sendData)
+	if err != nil {
+		NewMessage(m, WithDuration(0, bot.telegram))
+		log.Printf("[/send] Error: %s\n", err.Error())
+		bot.trySendMessage(m.Sender, fmt.Sprint(errorTryLaterMessage))
+		return
+	}
 	// save the send data to the database
 	log.Debug(sendData)
 	user, err = GetUser(m.Sender, *bot)
@@ -179,7 +191,7 @@ func (bot *TipBot) confirmSendHandler(m *tb.Message) {
 		return
 	}
 
-	SetUserState(user, *bot, lnbits.UserStateConfirmSend, sendData)
+	SetUserState(user, *bot, lnbits.UserStateConfirmSend, string(sendDataJson))
 
 	sendConfirmationMenu.Inline(sendConfirmationMenu.Row(btnSend, btnCancelSend))
 	confirmText := fmt.Sprintf(confirmSendInvoiceMessage, MarkdownEscape(toUserStrMention), amount)
@@ -234,27 +246,17 @@ func (bot *TipBot) sendHandler(c *tb.Callback) {
 		log.Errorf("[sendHandler] User StateKey does not match! User: %d: StateKey: %d", c.Sender.ID, user.StateKey)
 		return
 	}
-
-	// decode StateData in which we have information about the send payment
-	splits := strings.Split(user.StateData, "|")
-	if len(splits) < 3 {
-		log.Error("[sendHandler] Not enough arguments in callback data")
-		log.Errorf("user.StateData: %s", user.StateData)
+	sendData := &SendData{}
+	err = json.Unmarshal([]byte(user.StateData), sendData)
+	if err != nil {
+		log.Errorf("[sendHandler] could not unmarshal send data: %v", err)
 		return
 	}
-	toId, err := strconv.Atoi(splits[0])
-	if err != nil {
-		log.Errorln("[sendHandler] " + err.Error())
-	}
-	toUserStrWithoutAt := splits[1]
-	amount, err := strconv.Atoi(splits[2])
-	if err != nil {
-		log.Errorln("[sendHandler] " + err.Error())
-	}
-	sendMemo := ""
-	if len(splits) > 3 {
-		sendMemo = strings.Join(splits[3:], "|")
-	}
+	// decode StateData in which we have information about the send payment
+	toId := sendData.ToTelegramId
+	toUserStrWithoutAt := sendData.ToTelegramUser
+	amount := sendData.Amount
+	sendMemo := sendData.Memo
 
 	// reset state
 	ResetUserState(user, *bot)
@@ -268,7 +270,7 @@ func (bot *TipBot) sendHandler(c *tb.Callback) {
 	fromUserStr := GetUserStr(from)
 
 	transactionMemo := fmt.Sprintf("Send from %s to %s (%d sat).", fromUserStr, toUserStr, amount)
-	t := NewTransaction(bot, from, to, amount, TransactionType("send"))
+	t := NewTransaction(bot, from, to, int(amount), TransactionType("send"))
 	t.Memo = transactionMemo
 
 	success, err := t.Send()
