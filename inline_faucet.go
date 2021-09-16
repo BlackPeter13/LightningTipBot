@@ -303,6 +303,7 @@ func (bot *TipBot) accpetInlineFaucetHandler(ctx context.Context, c *tb.Callback
 		return
 	}
 	from := inlineFaucet.From
+	from.Wallet.Client = bot.client
 	err = bot.LockFaucet(inlineFaucet)
 	if err != nil {
 		log.Errorf("[faucet] %s", err)
