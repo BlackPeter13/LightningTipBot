@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/LightningTipBot/LightningTipBot/internal/lnbits"
 	"strconv"
 	"time"
 
@@ -41,19 +42,19 @@ var (
 )
 
 type InlineFaucet struct {
-	Message         string     `json:"inline_faucet_message"`
-	Amount          int        `json:"inline_faucet_amount"`
-	RemainingAmount int        `json:"inline_faucet_remainingamount"`
-	PerUserAmount   int        `json:"inline_faucet_peruseramount"`
-	From            *tb.User   `json:"inline_faucet_from"`
-	To              []*tb.User `json:"inline_faucet_to"`
-	Memo            string     `json:"inline_faucet_memo"`
-	ID              string     `json:"inline_faucet_id"`
-	Active          bool       `json:"inline_faucet_active"`
-	NTotal          int        `json:"inline_faucet_ntotal"`
-	NTaken          int        `json:"inline_faucet_ntaken"`
-	UserNeedsWallet bool       `json:"inline_faucet_userneedswallet"`
-	InTransaction   bool       `json:"inline_faucet_intransaction"`
+	Message         string       `json:"inline_faucet_message"`
+	Amount          int          `json:"inline_faucet_amount"`
+	RemainingAmount int          `json:"inline_faucet_remainingamount"`
+	PerUserAmount   int          `json:"inline_faucet_peruseramount"`
+	From            *lnbits.User `json:"inline_faucet_from"`
+	To              []*tb.User   `json:"inline_faucet_to"`
+	Memo            string       `json:"inline_faucet_memo"`
+	ID              string       `json:"inline_faucet_id"`
+	Active          bool         `json:"inline_faucet_active"`
+	NTotal          int          `json:"inline_faucet_ntotal"`
+	NTaken          int          `json:"inline_faucet_ntaken"`
+	UserNeedsWallet bool         `json:"inline_faucet_userneedswallet"`
+	InTransaction   bool         `json:"inline_faucet_intransaction"`
 }
 
 func NewInlineFaucet() *InlineFaucet {
@@ -193,7 +194,7 @@ func (bot TipBot) faucetHandler(ctx context.Context, m *tb.Message) {
 	bot.trySendMessage(m.Chat, inlineMessage, inlineFaucetMenu)
 	log.Infof("[faucet] %s created faucet %s: %d sat (%d per user)", fromUserStr, inlineFaucet.ID, inlineFaucet.Amount, inlineFaucet.PerUserAmount)
 	inlineFaucet.Message = inlineMessage
-	inlineFaucet.From = m.Sender
+	inlineFaucet.From = fromUser
 	inlineFaucet.Memo = memo
 	inlineFaucet.RemainingAmount = inlineFaucet.Amount
 	runtime.IgnoreError(bot.bunt.Set(inlineFaucet))
@@ -277,7 +278,7 @@ func (bot TipBot) handleInlineFaucetQuery(ctx context.Context, q *tb.Query) {
 		// create persistend inline send struct
 		inlineFaucet.Message = inlineMessage
 		inlineFaucet.ID = id
-		inlineFaucet.From = &q.From
+		inlineFaucet.From = fromUser
 		inlineFaucet.RemainingAmount = inlineFaucet.Amount
 		inlineFaucet.Memo = memo
 		runtime.IgnoreError(bot.bunt.Set(inlineFaucet))
@@ -301,11 +302,7 @@ func (bot *TipBot) accpetInlineFaucetHandler(ctx context.Context, c *tb.Callback
 		log.Errorf("[faucet] %s", err)
 		return
 	}
-	from, err := GetUser(inlineFaucet.From, *bot)
-	if err != nil {
-		log.Errorf("[acceptInlineSendHandler] %s", err)
-		return
-	}
+	from := inlineFaucet.From
 	err = bot.LockFaucet(inlineFaucet)
 	if err != nil {
 		log.Errorf("[faucet] %s", err)
@@ -419,7 +416,7 @@ func (bot *TipBot) cancelInlineFaucetHandler(c *tb.Callback) {
 		log.Errorf("[cancelInlineSendHandler] %s", err)
 		return
 	}
-	if c.Sender.ID == inlineFaucet.From.ID {
+	if c.Sender.ID == inlineFaucet.From.Telegram.ID {
 		bot.tryEditMessage(c.Message, inlineFaucetCancelledMessage, &tb.ReplyMarkup{})
 		// set the inlineFaucet inactive
 		inlineFaucet.Active = false
