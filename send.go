@@ -280,6 +280,8 @@ func (bot *TipBot) sendHandler(c *tb.Callback) {
 		return
 	}
 
+	log.Infof("[send] %d sat from %d to %d", amount, fromUserStr, toUserStr)
+
 	bot.trySendMessage(from, fmt.Sprintf(sendSentMessage, amount, toUserStrMd))
 	bot.trySendMessage(to, fmt.Sprintf(sendReceivedMessage, fromUserStrMd, amount))
 	// send memo if it was present

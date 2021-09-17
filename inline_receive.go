@@ -245,8 +245,6 @@ func (bot *TipBot) acceptInlineReceiveHandler(c *tb.Callback) {
 		return
 	}
 
-	log.Infof("[acceptInlineReceiveHandler] %d sat from %s to %s", inlineReceive.Amount, fromUserStr, toUserStr)
-
 	inlineReceive.Message = fmt.Sprintf("%s", fmt.Sprintf(inlineSendUpdateMessageAccept, inlineReceive.Amount, fromUserStrMd, toUserStrMd))
 	memo := inlineReceive.Memo
 	if len(memo) > 0 {
@@ -256,6 +254,8 @@ func (bot *TipBot) acceptInlineReceiveHandler(c *tb.Callback) {
 	if !bot.UserInitializedWallet(to) {
 		inlineReceive.Message += "\n\n" + fmt.Sprintf(inlineSendCreateWalletMessage, GetUserStrMd(bot.telegram.Me))
 	}
+
+	log.Infof("[inlineReceive] %d sat from %s to %s", inlineReceive.Amount, fromUserStr, toUserStr)
 
 	bot.tryEditMessage(c.Message, inlineReceive.Message, &tb.ReplyMarkup{})
 	// notify users
