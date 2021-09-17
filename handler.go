@@ -18,10 +18,8 @@ func (bot TipBot) registerTelegramHandlers() {
 	telegramHandlerRegistration.Do(func() {
 		// Set up handlers
 		for _, h := range bot.getHandler() {
-			for _, endpoint := range h.Endpoint {
-				fmt.Println("registering", endpoint)
-				bot.register(h)
-			}
+			fmt.Println("registering", h.Endpoint)
+			bot.register(h)
 		}
 
 	})
@@ -30,30 +28,36 @@ func (bot TipBot) registerTelegramHandlers() {
 func (bot TipBot) registerHandlerWithInterceptor(h Handler) {
 	switch h.Interceptor.Type {
 	case MessageInterceptor:
-		bot.telegram.Handle(endpoint,
-			intercept.HandlerWithMessage(h.Handler.(func(ctx context.Context, query *tb.Message)),
-				intercept.WithBeforeMessage(h.Interceptor.BeforeMessage...),
-				intercept.WithAfterMessage(h.Interceptor.AfterMessage...)))
+		for _, endpoint := range h.Endpoint {
+			bot.telegram.Handle(endpoint,
+				intercept.HandlerWithMessage(h.Handler.(func(ctx context.Context, query *tb.Message)),
+					intercept.WithBeforeMessage(h.Interceptor.BeforeMessage...),
+					intercept.WithAfterMessage(h.Interceptor.AfterMessage...)))
+		}
 
 	case QueryInterceptor:
-		bot.telegram.Handle(endpoint,
-			intercept.HandlerWithQuery(h.Handler.(func(ctx context.Context, query *tb.Query)),
-				intercept.WithBeforeQuery(h.Interceptor.BeforeQuery...),
-				intercept.WithAfterQuery(h.Interceptor.AfterQuery...)))
-
+		for _, endpoint := range h.Endpoint {
+			bot.telegram.Handle(endpoint,
+				intercept.HandlerWithQuery(h.Handler.(func(ctx context.Context, query *tb.Query)),
+					intercept.WithBeforeQuery(h.Interceptor.BeforeQuery...),
+					intercept.WithAfterQuery(h.Interceptor.AfterQuery...)))
+		}
 	case CallbackInterceptor:
-		bot.telegram.Handle(endpoint,
-			intercept.HandlerWithCallback(h.Handler.(func(ctx context.Context, callback *tb.Callback)),
-				intercept.WithBeforeCallback(h.Interceptor.BeforeCallback...),
-				intercept.WithAfterCallback(h.Interceptor.AfterCallback...)))
-
+		for _, endpoint := range h.Endpoint {
+			bot.telegram.Handle(endpoint,
+				intercept.HandlerWithCallback(h.Handler.(func(ctx context.Context, callback *tb.Callback)),
+					intercept.WithBeforeCallback(h.Interceptor.BeforeCallback...),
+					intercept.WithAfterCallback(h.Interceptor.AfterCallback...)))
+		}
 	}
 }
 func (bot TipBot) register(h Handler) {
 	if h.Interceptor != nil {
 		bot.registerHandlerWithInterceptor(h)
 	} else {
-		bot.telegram.Handle(endpoint, h.Handler)
+		for _, endpoint := range h.Endpoint {
+			bot.telegram.Handle(endpoint, h.Handler)
+		}
 	}
 }
 func (bot TipBot) getHandler() []Handler {
