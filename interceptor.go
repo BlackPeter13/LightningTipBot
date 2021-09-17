@@ -2,13 +2,9 @@ package main
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"github.com/LightningTipBot/LightningTipBot/internal/lnbits"
 	"github.com/LightningTipBot/LightningTipBot/internal/telegram/intercept"
-	log "github.com/sirupsen/logrus"
 	tb "gopkg.in/tucnak/telebot.v2"
-	"gorm.io/gorm"
 )
 
 type InterceptorType int
@@ -27,27 +23,6 @@ type Interceptor struct {
 	AfterQuery     []intercept.QueryFunc
 	BeforeCallback []intercept.CallbackFunc
 	AfterCallback  []intercept.CallbackFunc
-}
-
-func Register(iType InterceptorType) {
-
-}
-
-// updateUserInterceptor Update the telegram user with message intercept
-func (bot TipBot) updateUserInterceptor(ctx context.Context, m *tb.Message) context.Context {
-	user, err := GetUser(m.Sender, bot)
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		u := &lnbits.User{Telegram: m.Sender, Initialized: true}
-		err := bot.createWallet(u)
-		if err != nil {
-			return ctx
-		}
-		err = UpdateUserRecord(u, bot)
-		if err != nil {
-			log.Errorln(fmt.Sprintf("[UpdateUserRecord] error updating user: %s", err.Error()))
-		}
-	}
-	return context.WithValue(ctx, "user", user)
 }
 
 // loadUserQueryInterceptor Loading the telegram user with query intercept
@@ -86,6 +61,7 @@ func (bot TipBot) loadUserInterceptor(ctx context.Context, m *tb.Message) contex
 	}
 	return context.WithValue(ctx, "user", user)
 }
+
 func LoadUser(ctx context.Context) *lnbits.User {
 	u := ctx.Value("user")
 	if u != nil {
