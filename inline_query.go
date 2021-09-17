@@ -107,6 +107,6 @@ func (bot TipBot) anyQueryHandler(ctx context.Context, q *tb.Query) {
 	}
 
 	if strings.HasPrefix(q.Text, "receive") || strings.HasPrefix(q.Text, "get") || strings.HasPrefix(q.Text, "payme") || strings.HasPrefix(q.Text, "request") {
-		bot.handleInlineReceiveQuery(q)
+		bot.handleInlineReceiveQuery(ctx, q)
 	}
 }
