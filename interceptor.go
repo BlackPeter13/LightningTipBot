@@ -68,10 +68,12 @@ func (bot TipBot) loadUserCallbackInterceptor(ctx context.Context, c *tb.Callbac
 
 // loadReplyToInterceptor Loading the telegram user with message intercept
 func (bot TipBot) loadReplyToInterceptor(ctx context.Context, m *tb.Message) context.Context {
-	if m.ReplyTo.Sender != nil {
-		user, _ := GetUser(m.ReplyTo.Sender, bot)
-		user.Telegram = m.ReplyTo.Sender
-		return context.WithValue(ctx, "reply_to_user", user)
+	if m.ReplyTo != nil {
+		if m.ReplyTo.Sender != nil {
+			user, _ := GetUser(m.ReplyTo.Sender, bot)
+			user.Telegram = m.ReplyTo.Sender
+			return context.WithValue(ctx, "reply_to_user", user)
+		}
 	}
 	return context.Background()
 }
