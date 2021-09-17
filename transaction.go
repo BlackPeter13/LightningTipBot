@@ -126,14 +126,14 @@ func (t *Transaction) SendTransaction(bot *TipBot, from *lnbits.User, to *lnbits
 			Amount: int64(amount),
 			Out:    false,
 			Memo:   memo},
-		*to.Wallet)
+		bot.client)
 	if err != nil {
 		errmsg := fmt.Sprintf("[SendTransaction] Error: Could not create invoice for user %s", toUserStr)
 		log.Errorln(errmsg)
 		return false, err
 	}
 	// pay invoice
-	_, err = from.Wallet.Pay(lnbits.PaymentParams{Out: true, Bolt11: invoice.PaymentRequest}, *from.Wallet)
+	_, err = from.Wallet.Pay(lnbits.PaymentParams{Out: true, Bolt11: invoice.PaymentRequest}, bot.client)
 	if err != nil {
 		errmsg := fmt.Sprintf("[SendTransaction] Error: Payment from %s to %s of %d sat failed", fromUserStr, toUserStr, amount)
 		log.Errorln(errmsg)

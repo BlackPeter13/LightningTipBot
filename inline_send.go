@@ -202,7 +202,6 @@ func (bot *TipBot) acceptInlineSendHandler(ctx context.Context, c *tb.Callback) 
 		return
 	}
 	fromUser := inlineSend.From
-	fromUser.Wallet.Client = bot.client
 	// immediatelly set intransaction to block duplicate calls
 	err = bot.LockSend(inlineSend)
 	if err != nil {

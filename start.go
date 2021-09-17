@@ -93,17 +93,16 @@ func (bot TipBot) createWallet(user *lnbits.User) error {
 		log.Errorln(errormsg)
 		return err
 	}
-	user.Wallet = &lnbits.Wallet{Client: bot.client}
+	user.Wallet = &lnbits.Wallet{}
 	user.ID = u.ID
 	user.Name = u.Name
-	wallet, err := user.Wallet.Wallets(*user)
+	wallet, err := bot.client.Wallets(*user)
 	if err != nil {
 		errormsg := fmt.Sprintf("[createWallet] Get wallet error: %s", err)
 		log.Errorln(errormsg)
 		return err
 	}
 	user.Wallet = &wallet[0]
-	user.Wallet.Client = bot.client
 	user.Initialized = false
 	err = UpdateUserRecord(user, bot)
 	if err != nil {

@@ -89,7 +89,7 @@ func appendUinqueUsersToSlice(slice []*tb.User, i *tb.User) []*tb.User {
 
 func (bot *TipBot) GetUserBalance(user *lnbits.User) (amount int, err error) {
 
-	wallet, err := user.Wallet.Info(*user.Wallet)
+	wallet, err := bot.client.Info(*user.Wallet)
 	if err != nil {
 		errmsg := fmt.Sprintf("[GetUserBalance] Error: Couldn't fetch user %s's info from LNbits: %s", GetUserStr(user.Telegram), err)
 		log.Errorln(errmsg)

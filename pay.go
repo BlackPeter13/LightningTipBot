@@ -140,7 +140,7 @@ func (bot TipBot) payHandler(ctx context.Context, c *tb.Callback) {
 
 		userStr := GetUserStr(c.Sender)
 		// pay invoice
-		invoice, err := user.Wallet.Pay(lnbits.PaymentParams{Out: true, Bolt11: invoiceString}, *user.Wallet)
+		invoice, err := user.Wallet.Pay(lnbits.PaymentParams{Out: true, Bolt11: invoiceString}, bot.client)
 		if err != nil {
 			errmsg := fmt.Sprintf("[/pay] Could not pay invoice of user %s: %s", userStr, err)
 			bot.trySendMessage(c.Sender, fmt.Sprintf(invoicePaymentFailedMessage, err))

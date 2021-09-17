@@ -44,9 +44,6 @@ func GetUser(u *tb.User, bot TipBot) (*lnbits.User, error) {
 		log.Warnln(errmsg)
 		return user, tx.Error
 	}
-	defer func() {
-		user.Wallet.Client = bot.client
-	}()
 	var err error
 	go func() {
 		userCopy := bot.copyLowercaseUser(u)

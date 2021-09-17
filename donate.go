@@ -75,7 +75,7 @@ func (bot TipBot) donationHandler(ctx context.Context, m *tb.Message) {
 	// send donation invoice
 	user := LoadUser(ctx)
 	// bot.trySendMessage(user.Telegram, string(body))
-	_, err = user.Wallet.Pay(lnbits.PaymentParams{Out: true, Bolt11: string(body)}, *user.Wallet)
+	_, err = user.Wallet.Pay(lnbits.PaymentParams{Out: true, Bolt11: string(body)}, bot.client)
 	if err != nil {
 		userStr := GetUserStr(m.Sender)
 		errmsg := fmt.Sprintf("[/donate] Donation failed for user %s: %s", userStr, err)

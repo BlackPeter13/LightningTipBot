@@ -74,7 +74,7 @@ func (bot TipBot) invoiceHandler(ctx context.Context, m *tb.Message) {
 			Amount:  int64(amount),
 			Memo:    memo,
 			Webhook: Configuration.Lnbits.WebhookServer},
-		*user.Wallet)
+		bot.client)
 	if err != nil {
 		errmsg := fmt.Sprintf("[/invoice] Could not create an invoice: %s", err)
 		log.Errorln(errmsg)
