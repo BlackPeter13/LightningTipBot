@@ -12,7 +12,7 @@ const (
 		"❤️ *Donate*\n" +
 		"_This bot charges no fees but costs satoshis to operate. If you like the bot, please consider supporting this project with a donation. To donate, use_ `/donate 1000`\n\n" +
 		"%s" +
-		"⚙️ *Endpoint*\n" +
+		"⚙️ *Commands*\n" +
 		"*/tip* 🏅 Reply to a message to tip: `/tip <amount> [<memo>]`\n" +
 		"*/balance* 👑 Check your balance: `/balance`\n" +
 		"*/send* 💸 Send funds to a user: `/send <amount> @user or user@ln.tips [<memo>]`\n" +
