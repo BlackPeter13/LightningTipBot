@@ -2,11 +2,12 @@ package intercept
 
 import (
 	"context"
+	log "github.com/sirupsen/logrus"
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
 type CallbackFuncHandler func(ctx context.Context, message *tb.Callback)
-type CallbackFunc func(ctx context.Context, message *tb.Callback) context.Context
+type CallbackFunc func(ctx context.Context, message *tb.Callback) (context.Context, error)
 
 type handlerCallbackInterceptor struct {
 	handler CallbackFuncHandler
@@ -27,16 +28,20 @@ func WithAfterCallback(chain ...CallbackFunc) CallbackInterceptOption {
 	}
 }
 
-func interceptCallback(ctx context.Context, message *tb.Callback, hm CallbackChain) context.Context {
+func interceptCallback(ctx context.Context, message *tb.Callback, hm CallbackChain) (context.Context, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 	if hm != nil {
+		var err error
 		for _, m := range hm {
-			ctx = m(ctx, message)
+			ctx, err = m(ctx, message)
+			if err != nil {
+				return ctx, err
+			}
 		}
 	}
-	return ctx
+	return ctx, nil
 }
 
 func HandlerWithCallback(handler CallbackFuncHandler, option ...CallbackInterceptOption) func(Callback *tb.Callback) {
@@ -45,8 +50,15 @@ func HandlerWithCallback(handler CallbackFuncHandler, option ...CallbackIntercep
 		opt(hm)
 	}
 	return func(c *tb.Callback) {
-		ctx := interceptCallback(context.Background(), c, hm.before)
+		ctx, err := interceptCallback(context.Background(), c, hm.before)
+		if err != nil {
+			log.Errorln(err)
+			return
+		}
 		hm.handler(ctx, c)
-		interceptCallback(ctx, c, hm.after)
+		_, err = interceptCallback(ctx, c, hm.after)
+		if err != nil {
+			log.Errorln(err)
+		}
 	}
 }

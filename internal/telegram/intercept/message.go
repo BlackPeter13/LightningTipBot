@@ -2,6 +2,7 @@ package intercept
 
 import (
 	"context"
+	log "github.com/sirupsen/logrus"
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
@@ -9,7 +10,7 @@ type MessageInterface interface {
 	a() func(ctx context.Context, message *tb.Message)
 }
 type MessageFuncHandler func(ctx context.Context, message *tb.Message)
-type MessageFunc func(ctx context.Context, message *tb.Message) context.Context
+type MessageFunc func(ctx context.Context, message *tb.Message) (context.Context, error)
 
 type handlerMessageInterceptor struct {
 	handler MessageFuncHandler
@@ -30,24 +31,22 @@ func WithAfterMessage(chain ...MessageFunc) MessageInterceptOption {
 	}
 }
 
-func interceptMessage(ctx context.Context, message *tb.Message, hm MessageChain) context.Context {
+func interceptMessage(ctx context.Context, message *tb.Message, hm MessageChain) (context.Context, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 	if hm != nil {
+		var err error
 		for _, m := range hm {
-			ctx = m(ctx, message)
+			ctx, err = m(ctx, message)
+			if err != nil {
+				return ctx, err
+			}
 		}
 	}
-	return ctx
+	return ctx, nil
 }
 
-/*func Handle(handler interface{}, option ...MessageInterceptOption) func(message *tb.Message) {
-	switch handler.(type) {
-	case func(ctx context.Context, message *tb.Message):
-		handler.(func(ctx context.Context, message *tb.Message))()
-	}
-}*/
 func HandlerWithMessage(handler MessageFuncHandler, option ...MessageInterceptOption) func(message *tb.Message) {
 
 	hm := &handlerMessageInterceptor{handler: handler}
@@ -55,8 +54,16 @@ func HandlerWithMessage(handler MessageFuncHandler, option ...MessageInterceptOp
 		opt(hm)
 	}
 	return func(message *tb.Message) {
-		ctx := interceptMessage(context.Background(), message, hm.before)
+		ctx, err := interceptMessage(context.Background(), message, hm.before)
+		if err != nil {
+			log.Errorln(err)
+			return
+		}
 		hm.handler(ctx, message)
-		interceptMessage(ctx, message, hm.after)
+		_, err = interceptMessage(ctx, message, hm.after)
+		if err != nil {
+			log.Errorln(err)
+			return
+		}
 	}
 }

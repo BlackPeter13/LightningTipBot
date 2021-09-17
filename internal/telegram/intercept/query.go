@@ -2,11 +2,12 @@ package intercept
 
 import (
 	"context"
+	log "github.com/sirupsen/logrus"
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
 type QueryFuncHandler func(ctx context.Context, message *tb.Query)
-type QueryFunc func(ctx context.Context, message *tb.Query) context.Context
+type QueryFunc func(ctx context.Context, message *tb.Query) (context.Context, error)
 
 type handlerQueryInterceptor struct {
 	handler QueryFuncHandler
@@ -27,16 +28,20 @@ func WithAfterQuery(chain ...QueryFunc) QueryInterceptOption {
 	}
 }
 
-func interceptQuery(ctx context.Context, message *tb.Query, hm QueryChain) context.Context {
+func interceptQuery(ctx context.Context, message *tb.Query, hm QueryChain) (context.Context, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 	if hm != nil {
+		var err error
 		for _, m := range hm {
-			ctx = m(ctx, message)
+			ctx, err = m(ctx, message)
+			if err != nil {
+				return ctx, err
+			}
 		}
 	}
-	return ctx
+	return ctx, nil
 }
 
 func HandlerWithQuery(handler QueryFuncHandler, option ...QueryInterceptOption) func(message *tb.Query) {
@@ -45,8 +50,16 @@ func HandlerWithQuery(handler QueryFuncHandler, option ...QueryInterceptOption) 
 		opt(hm)
 	}
 	return func(message *tb.Query) {
-		ctx := interceptQuery(context.Background(), message, hm.before)
+		ctx, err := interceptQuery(context.Background(), message, hm.before)
+		if err != nil {
+			log.Errorln(err)
+			return
+		}
 		hm.handler(ctx, message)
-		interceptQuery(ctx, message, hm.after)
+		_, err = interceptQuery(ctx, message, hm.after)
+		if err != nil {
+			log.Errorln(err)
+			return
+		}
 	}
 }
